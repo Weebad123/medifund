@@ -20,8 +20,8 @@ pub mod medifund {
     }
 
 
-    // Initialize The Global Verifiers Registry List
-    pub fn initialize_global_verifiers_list(ctx: Context<InitializeVerifiersRegistry>) -> Result<()> {
+    // Initialize The Global Verifiers Registry List And Case Counter
+    pub fn initialize_global_verifiers_list_and_case_counter(ctx: Context<InitializeVerifiersRegistryAndCaseCounter>) -> Result<()> {
 
         instructions::verifiers_operations::initialize_verifiers_list(ctx)?;
 
@@ -40,6 +40,22 @@ pub mod medifund {
                 instructions::verifiers_operations::remove_verifier(ctx, verifier)?;
             }
         }
+        Ok(())
+    }
+
+    // Patient Submit Cases Here
+    pub fn submit_cases(ctx: Context<InitializePatientCase>, case_description: String, total_amount_needed: u64, 
+        link_to_records: String) -> Result<()> {
+
+        instructions::initialize_patient(ctx, case_description, total_amount_needed, link_to_records)?;
+        Ok(())
+    }
+
+    // Verifier attempts to approve a patient case
+    pub fn verify_patient(ctx: Context<VerifyPatientCase>, case_id: String, is_yes: bool) -> Result<()> {
+
+        instructions::approve_patient_case(ctx, case_id, is_yes)?;
+
         Ok(())
     }
 }

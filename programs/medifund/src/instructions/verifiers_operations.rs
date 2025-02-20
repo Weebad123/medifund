@@ -7,9 +7,13 @@ use crate::states::{contexts::*, errors::*};
 Where I Track All Added Verifiers To The System. 
 This Will Be A PDA initialized One Time */
 
-// Let's Initialize The Verifiers Registry PDA account here
-pub fn initialize_verifiers_list(ctx: Context<InitializeVerifiersRegistry>) -> Result<()> {
+// Let's Initialize The Verifiers Registry and Case Counter PDA accounts here
+pub fn initialize_verifiers_list(ctx: Context<InitializeVerifiersRegistryAndCaseCounter>) -> Result<()> {
     let verifiers_registry = &mut ctx.accounts.verifiers_registry_list;
+
+    let case_id_counter = &mut ctx.accounts.case_counter;
+    case_id_counter.current_id = 0;
+    case_id_counter.counter_bump = ctx.bumps.case_counter;
 
 
     verifiers_registry.all_verifiers = Vec::new();
@@ -31,7 +35,7 @@ pub fn add_verifier(ctx: Context<VerifierInfo>, verifier_address: Pubkey) -> Res
     let verifiers_registry = &mut ctx.accounts.verifiers_list;
 
     // Add the verifier PDA account, and not just the address
-    verifiers_registry.add_verifierPDA_to_list(verifier_info.key())?;
+    verifiers_registry.add_verifier_pda_to_list(verifier_info.key())?;
 
     Ok(())
 }
@@ -46,7 +50,7 @@ pub fn remove_verifier(ctx: Context<VerifierInfo>, verifier_address: Pubkey) -> 
     // Remove Verifier PDA from the Global Registry
     let verifiers_registry = &mut ctx.accounts.verifiers_list;
 
-    verifiers_registry.remove_verifierPDA_from_list(&verifier_info.key())?;
+    verifiers_registry.remove_verifier_pda_from_list(&verifier_info.key())?;
 
     // Let's set verifier status to false
     verifier_info.is_verifier = false;

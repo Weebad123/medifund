@@ -1,3 +1,4 @@
+//use aes_gcm::aes::cipher::OverflowError;
 use anchor_lang::prelude::*;
 
 
@@ -5,6 +6,9 @@ use anchor_lang::prelude::*;
 pub enum MedifundError{
     #[msg("Patient Case Has Not Been Verified")]
     NotVerifiedSuccessfully,
+
+    #[msg("Patient Case Has Already Been Verified")]
+    CaseAlreadyVerified,
 
     #[msg("Only Callable By Administrator")]
     OnlyAdmin,
@@ -22,4 +26,25 @@ pub enum MedifundError{
 
     #[msg("Specified Verifier Address Does Not Exists")]
     InvalidVerifierAddress,
+
+    #[msg("Key Generation Was Not Successful")]
+    KeyGenerationError,
+
+    #[msg("Encryption of the link Is Unsuccessful!")]
+    EncryptionError,
+
+    #[msg("Specified Case ID Does Not Exist")]
+    InvalidCaseID,
+
+    #[msg("Verifier Can Only Vote Once On A Case")]
+    VerifierAlreadyVoted,
+
+    #[msg("Possible Overflow Error Detected")]
+    OverflowError,
+
+    #[msg("Escrow Account Creation For Patient Was Unsuccessful")]
+    EscrowCreationFailed,
+
+    #[msg("Escrow Account Verification With Passed Account Failed")]
+    InvalidEscrowPDA,
 }
