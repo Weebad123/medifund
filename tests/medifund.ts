@@ -94,7 +94,7 @@ describe("medifund", () => {
     );
   });
 
-  it("Admin Initialization Done Correctly !!!", async () => {
+  it("TEST 1 ::::: Admin Initialization Done Correctly !!!", async () => {
     // Add your test here.
     // Let's get the Admin PDA
     const [adminPDA, adminBump] = PublicKey.findProgramAddressSync(
@@ -122,7 +122,7 @@ describe("medifund", () => {
   });
 
   // LET'S WRITE A TEST TO INITIALIZE THE VERIFIERS GLOBAL REGISTRY AND CASE COUNTER
-  it("Admin Initializing The Global Registry Of Verifiers And Case ID Counter for Patients Submissions!!!", async () => {
+  it("TEST 2 ::::: Admin Initializing The Global Registry Of Verifiers And Case ID Counter for Patients Submissions!!!", async () => {
     //
 
     const [adminPDA, adminBump] = PublicKey.findProgramAddressSync(
@@ -174,7 +174,7 @@ describe("medifund", () => {
     expect(caseCounterData.counterBump).to.equal(caseCounterBump);
   });
 
-  it("Admin Adding 1-5 Verifiers Done Correctly !!!", async () => {
+  it("TEST 3 :::::  Admin Adding 1-5 Verifiers Done Correctly !!!", async () => {
     // Let's initialize admin account here:
     const [adminPDA, adminBump] = PublicKey.findProgramAddressSync(
       [Buffer.from("admin"), newAdmin.publicKey.toBuffer()],
@@ -435,7 +435,7 @@ describe("medifund", () => {
     expect(globalVerifiersListData.allVerifiers.length).to.equal(6);
   });
 
-  it("Admin Removing Verifier 4 From The Global Registry !!!", async () => {
+  it("TEST 4 ::::::: Admin Removing Verifier 4 From The Global Registry !!!", async () => {
     // Let's get Verifier 1 PDA address
     const [verifier4PDA, verifier1Bump] = PublicKey.findProgramAddressSync(
       [Buffer.from("verifier_role"), verifier4Keypair.publicKey.toBuffer()],
@@ -480,7 +480,7 @@ describe("medifund", () => {
     expect(globalVerifiersListData.allVerifiers.length).to.equal(5);
   });
 
-  it("Unhappy Scenario:  : : Only Admin Can Initialize (Add or Remove) A Verifier !!!!", async () => {
+  it("TEST 5 ::::: Unhappy Scenario:  : : Only Admin Can Initialize (Add or Remove) A Verifier !!!!", async () => {
     // Let's set up the Admin and Verifier PDAs
     const [adminPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("admin"), newAdmin.publicKey.toBuffer()],
@@ -520,7 +520,7 @@ describe("medifund", () => {
     }
   });
 
-  it("Patient 1 and 2 and 3 Submit First Medical Case !!! ", async () => {
+  it("TEST 6 :::::: Patient 1 and 2 and 3 Submit First Medical Case !!! ", async () => {
     // We setting up the respective PDAs
     const [patient1CasePDA, patient1CaseBump] =
       PublicKey.findProgramAddressSync(
@@ -752,7 +752,7 @@ describe("medifund", () => {
   });
 
   // Testing for Verification On Patient 1 Case
-  it("4 Verifiers (1, 2, 3, 5) Verify Patient 1 Case: 5 Total Verifiers Initialized, 3 Votes a YES, and 1 a NO !!!", async () => {
+  it("TEST 7 :::::  4 Verifiers (1, 2, 3, 5) Verify Patient 1 Case: 5 Total Verifiers Initialized, 3 Votes a YES, and 1 a NO !!!", async () => {
     // Testing for verification Purpose
     const [patient1CasePDA, patient1CaseBump] =
       PublicKey.findProgramAddressSync(
@@ -894,7 +894,7 @@ describe("medifund", () => {
   });
 
   // Testing for Verification On Patient 2 Case
-  it("5 Verifiers (1, 2, 3, 5, 6) On Patient 2 Case: 5 Initialized, 3 Votes a YES, and 2 a NO. 70% threshold working!!!", async () => {
+  it("TEST 8 ::::::  5 Verifiers (1, 2, 3, 5, 6) On Patient 2 Case: 5 Initialized, 3 Votes a YES, and 2 a NO. 70% threshold working!!!", async () => {
     // Testing For Verification Purposes on Patient 2 Case
     const [patient2CasePDA, patient2CaseBump] =
       PublicKey.findProgramAddressSync(
@@ -1054,7 +1054,7 @@ describe("medifund", () => {
     );
   });
 
-  it("4 Verifiers (2, 3, 5, 6) On Patient 3 Case: 3 Vote a NO, 1 vote a YES. Checking if Patient Case Account Will Be Indeed Closed", async () => {
+  it("TEST 9 :::::: 4 Verifiers (2, 3, 5, 6) On Patient 3 Case: 3 Vote a NO, 1 vote a YES. Checking if Patient Case Account Will Be Indeed Closed", async () => {
     // Let's Get The Patient PDAs
     const [patient3CasePDA, patient3CaseBump] =
       PublicKey.findProgramAddressSync(
@@ -1178,7 +1178,7 @@ describe("medifund", () => {
     console.log("PATIENT 3 CASE DATA IS: ", patient3CaseData);*/
   });
 
-  it(" UNHAPPY SCENARIO::::::::::::::: A Verifier Cannot Vote Twice On A Particular Case", async () => {
+  it(" TEST 10 ::::: ===>UNHAPPY SCENARIO::::::::::::::: A Verifier Cannot Vote Twice On A Particular Case", async () => {
     // Verifier 5 Voted On Case 2 In The Prior Test
 
     const [patient2CasePDA, patient2CaseBump] =
@@ -1240,7 +1240,7 @@ describe("medifund", () => {
     }
   });
 
-  it("UNHAPPY SCENARIO:::::::::::::::: A Verifier Cannot Vote On An Already Verified Case  ==> Verifier6 Cannot Vote On Case 1, Which is Already Verified", async () => {
+  it("TEST 11 :::::  UNHAPPY SCENARIO:::::::::::::::: A Verifier Cannot Vote On An Already Verified Case  ==> Verifier6 Cannot Vote On Case 1, Which is Already Verified", async () => {
     //Verifier 6 Did Not Vote On Case 1 prior to it being verified.
     // Now, He attempts to Vote on Case 1, but will get a transaction revert.
     const [verifier6PDA, verifier6Bump] = PublicKey.findProgramAddressSync(
