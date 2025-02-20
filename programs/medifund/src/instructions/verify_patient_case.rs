@@ -1,6 +1,6 @@
 
 
-use anchor_lang::{prelude::*, solana_program::{self, rent::Rent, system_instruction}};
+use anchor_lang::{prelude::*, solana_program::{self, rent::Rent, system_program /*system_instruction*/}};
 
 use solana_program::pubkey::Pubkey;
 
@@ -131,36 +131,61 @@ fn create_escrow_pda(ctx: Context<VerifyPatientCase>) -> Result<()> {
 
 
 
-fn _close_patient_case(ctx: Context<VerifyPatientCase>) -> Result<()> {
+fn close_patient_case(ctx: Context<VerifyPatientCase>) -> Result<()> {
     
-    let patient_case = &mut ctx.accounts.patient_case;
+    let patient_case = &ctx.accounts.patient_case;
 
-    let verifier = &mut ctx.accounts.verifier;
-    let _verifier_info = verifier.to_account_info();
-    let verifier_key = verifier.key();
+    let verifier = &ctx.accounts.verifier;
+    let _case_lookup = &ctx.accounts.case_lookup;
+
+    let verifier_info = verifier.to_account_info();
+    let patient_case_info = patient_case.to_account_info();
+    //let verifier_key = verifier.key();
 
     // Calculate lamports that will be transferred
-    let patient_case_lamports = patient_case.to_account_info().lamports();
-    let patient_case_info = patient_case.to_account_info();
+    /* 
+    let _patient_case_lamports = patient_case.to_account_info().lamports();
+    
+    let verifier_info_lamports = verifier_info.lamports();
+    **verifier_info_lamports.borrow_mut() = verifier_info_lamports.checked_add(patient_case_info.lamports()).unwrap();
+    **patient_case_info.lamports().borrow_mut() = 0;
+   patient_case_info.assign(&system_program::ID);
+   patient_case_info.realloc(0, false).map_err(Into::into);
+*/
+    **verifier_info.try_borrow_mut_lamports()? = verifier_info
+        .lamports()
+        .checked_add(patient_case_info.lamports())
+        .ok_or(MedifundError::OverflowError)?;
+    **patient_case_info.try_borrow_mut_lamports()? = 0;
 
+    patient_case_info.assign(&system_program::ID);
+    patient_case_info.realloc(0, false)?;
+/* 
+     // Zero out all the data
+     let mut data = patient_case_info.data.borrow_mut();
+     for byte in data.iter_mut() {
+         *byte = 0;
+     }
+     drop(data);*/
+/* 
     // Create close instruction
     let close_ix = system_instruction::transfer(
-        &patient_case.key(),
-        &verifier.key(),
+        &patient_case_info.key(),
+        &_verifier_info.key(),
         patient_case_lamports
     );
 
     let accounts_needed = &[
-        patient_case.to_account_info(),
-        verifier.to_account_info(),
+        patient_case_info.clone(),
+        _verifier_info.clone(),
         ctx.accounts.system_program.to_account_info(),
     ];
 
     // We need signer seeds, cox of transfer from pda
     let seeds = &[
         b"patient",
-        //patient_case.patient_pubkey.as_ref(),
-        verifier_key.as_ref(),
+        case_lookup.patient_address.as_ref(),
+        //verifier_key.as_ref(),
         &[patient_case.patient_case_bump]
     ];
 
@@ -170,13 +195,9 @@ fn _close_patient_case(ctx: Context<VerifyPatientCase>) -> Result<()> {
         &close_ix,
         accounts_needed,
         signer_seeds
-    )?;
+    )?;*/
 
-    // Zero out all the data
-    let mut data = patient_case_info.data.borrow_mut();
-    for byte in data.iter_mut() {
-        *byte = 0;
-    }
+   
     
     Ok(())
 }

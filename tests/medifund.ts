@@ -1172,10 +1172,10 @@ describe("medifund", () => {
       .signers([verifier6Keypair])
       .rpc();
 
-    const patient3CaseData = await program.account.patientCase.fetch(
+    /*const patient3CaseData = await program.account.patientCase.fetch(
       patient3CasePDA
     );
-    console.log("PATIENT 3 CASE DATA IS: ", patient3CaseData);
+    console.log("PATIENT 3 CASE DATA IS: ", patient3CaseData);*/
   });
 
   it(" UNHAPPY SCENARIO::::::::::::::: A Verifier Cannot Vote Twice On A Particular Case", async () => {
