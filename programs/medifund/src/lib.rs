@@ -58,6 +58,21 @@ pub mod medifund {
 
         Ok(())
     }
+
+    // Donors Make Donations To Patient's Escrow Accounts.
+    pub fn donate(ctx: Context<Donation>, case_id: String, amount_to_donate: u64) -> Result<()> {
+
+        instructions::donate_funds_to_patient_escrow(ctx, case_id, amount_to_donate)?;
+
+        Ok(())
+    }
+
+    pub fn release_funds(ctx: Context<ReleaseFunds>, case_id: String) -> Result<()> {
+
+        instructions::release_funds(ctx, case_id)?;
+
+        Ok(())
+    }
 }
 
 

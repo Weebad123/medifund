@@ -1054,7 +1054,7 @@ describe("medifund", () => {
     );
   });
 
-  it("TEST 9 :::::: 4 Verifiers (2, 3, 5, 6) On Patient 3 Case: 3 Vote a NO, 1 vote a YES. Checking if Patient Case Account Will Be Indeed Closed", async () => {
+  it("TEST 9 :::::: 4 Verifiers (2, 3, 5, 6) On Patient 3 Case: 3 Vote a NO, 1 vote a YES. Patient Case Account Is Not Verified", async () => {
     // Let's Get The Patient PDAs
     const [patient3CasePDA, patient3CaseBump] =
       PublicKey.findProgramAddressSync(
@@ -1172,10 +1172,11 @@ describe("medifund", () => {
       .signers([verifier6Keypair])
       .rpc();
 
-    /*const patient3CaseData = await program.account.patientCase.fetch(
+    const patient3CaseData = await program.account.patientCase.fetch(
       patient3CasePDA
     );
-    console.log("PATIENT 3 CASE DATA IS: ", patient3CaseData);*/
+    //console.log("PATIENT 3 CASE DATA IS: ", patient3CaseData);
+    expect(patient3CaseData.isVerified).to.be.false;
   });
 
   it(" TEST 10 ::::: ===>UNHAPPY SCENARIO::::::::::::::: A Verifier Cannot Vote Twice On A Particular Case", async () => {
@@ -1299,5 +1300,241 @@ describe("medifund", () => {
     } catch (err) {
       expect(err.error.errorCode.code).to.equal("CaseAlreadyVerified");
     }
+  });
+
+  /// TESTING THAT DONATIONS WORK
+  it("TEST 12  =====>>>>> 2 Donors Contributing Funds To A Verified Case I, Works Correctly", async () => {
+    // Let's get the various PDAs
+    const [patient1CasePDA, patient1CaseBump] =
+      PublicKey.findProgramAddressSync(
+        [Buffer.from("patient"), patient1Keypair.publicKey.toBuffer()],
+        program.programId
+      );
+    const [patient1EscrowPDA, patient1EscrowBump] =
+      PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("patient_escrow"),
+          Buffer.from("CASE0001"),
+          patient1CasePDA.toBuffer(),
+        ],
+        program.programId
+      );
+
+    const [caseCounterPDA, caseCounterBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("case_counter")],
+      program.programId
+    );
+    const [caseLookupPDA, caseLookupBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("case_lookup"), Buffer.from("CASE0001")],
+      program.programId
+    );
+
+    const [donor1PDA, donor1Bump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("donor"), donor1Keypair.publicKey.toBuffer()],
+      program.programId
+    );
+    const [donor2PDA, donor2Bump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("donor"), donor2Keypair.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const rentExempt =
+      await program.provider.connection.getMinimumBalanceForRentExemption(0);
+
+    // Let's let Donor 1 Call Donate Instructions
+    await program.methods
+      .donate("CASE0001", new BN(15000))
+      .accounts({
+        donor: donor1Keypair.publicKey,
+        // @ts-ignore
+        caseLookup: caseLookupPDA,
+        patientCase: patient1CasePDA,
+        patientEscrow: patient1EscrowPDA,
+        caseCounter: caseCounterPDA,
+        donorAccount: donor1PDA,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([donor1Keypair])
+      .rpc();
+
+    // Let Donor 2 Contribute 4500 to Verified Case I
+    await program.methods
+      .donate("CASE0001", new BN(4500))
+      .accounts({
+        donor: donor2Keypair.publicKey,
+        // @ts-ignore
+        caseLookup: caseLookupPDA,
+        patientCase: patient1CasePDA,
+        patientEscrow: patient1EscrowPDA,
+        caseCounter: caseCounterPDA,
+        donorAccount: donor2PDA,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([donor2Keypair])
+      .rpc();
+
+    // Let Donor 1 contribute another 100 To Case I
+    await program.methods
+      .donate("CASE0001", new BN(100))
+      .accounts({
+        donor: donor1Keypair.publicKey,
+        // @ts-ignore
+        caseLookup: caseLookupPDA,
+        patientCase: patient1CasePDA,
+        patientEscrow: patient1EscrowPDA,
+        caseCounter: caseCounterPDA,
+        donorAccount: donor1PDA,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([donor1Keypair])
+      .rpc();
+
+    // Get Data of donors, patientCase and Escrow
+    const patientCase1Data = await program.account.patientCase.fetch(
+      patient1CasePDA
+    );
+    const donor1Data = await program.account.donorInfo.fetch(donor1PDA);
+    const donor2Data = await program.account.donorInfo.fetch(donor2PDA);
+
+    // Donor 1 has made 15000 + 100 contributions, whereas Donor 2 has made 4500
+    expect(donor1Data.totalDonations.toNumber()).eq(15100);
+    expect(donor2Data.totalDonations.toNumber()).eq(4500);
+    // Patience Total Raised Updated
+    expect(patientCase1Data.totalRaised.toNumber()).eq(19600);
+    // Patience Escrow PDA receives Amount;
+    const escrowPDAbalance = await program.provider.connection.getBalance(
+      patient1EscrowPDA
+    );
+    const escrowPDAbalanceActual = escrowPDAbalance - rentExempt;
+    console.log(
+      "The balance of Patient 1 Escrow PDA is: ",
+      escrowPDAbalanceActual
+    );
+    expect(escrowPDAbalanceActual).eq(19600);
+  });
+
+  it("TEST 13  ==>>> Donors Attempt To Contribute To An Unverified Case II or III, Must Fail", async () => {
+    // Testing For Case II
+    const [patient2CasePDA, patient2CaseBump] =
+      PublicKey.findProgramAddressSync(
+        [Buffer.from("patient"), patient2Keypair.publicKey.toBuffer()],
+        program.programId
+      );
+    const [patient2EscrowPDA, patient2EscrowBump] =
+      PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("patient_escrow"),
+          Buffer.from("CASE0002"),
+          patient2CasePDA.toBuffer(),
+        ],
+        program.programId
+      );
+
+    const [caseCounterPDA, caseCounterBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("case_counter")],
+      program.programId
+    );
+    const [caseLookupPDA2, caseLookupBump2] = PublicKey.findProgramAddressSync(
+      [Buffer.from("case_lookup"), Buffer.from("CASE0002")],
+      program.programId
+    );
+
+    const [donor1PDA, donor1Bump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("donor"), donor1Keypair.publicKey.toBuffer()],
+      program.programId
+    );
+
+    // Let Donor 2 contribute 30000 to Unverified Case II
+    try {
+      await program.methods
+        .donate("CASE0002", new BN(30000))
+        .accounts({
+          donor: donor1Keypair.publicKey,
+          // @ts-ignore
+          caseLookup: caseLookupPDA2,
+          patientCase: patient2CasePDA,
+          patientEscrow: patient2EscrowPDA,
+          caseCounter: caseCounterPDA,
+          donorAccount: donor1PDA,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([donor1Keypair])
+        .rpc();
+    } catch (err) {
+      expect(err.error.errorCode.code).to.equal("UnverifiedCase");
+    }
+  });
+
+  it("TEST 14  ---------- Authorized Multisig Can Release Funds From Escrow To Treatment Wallet", async () => {
+    // let's get required pdas
+    const [patient1CasePDA, patient1CaseBump] =
+      PublicKey.findProgramAddressSync(
+        [Buffer.from("patient"), patient1Keypair.publicKey.toBuffer()],
+        program.programId
+      );
+    const [patient1EscrowPDA, patient1EscrowBump] =
+      PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("patient_escrow"),
+          Buffer.from("CASE0001"),
+          patient1CasePDA.toBuffer(),
+        ],
+        program.programId
+      );
+    const [verifiersListPDA, verifiersListBump] =
+      PublicKey.findProgramAddressSync(
+        [Buffer.from("verifiers_list")],
+        program.programId
+      );
+    const [adminPDA, adminBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("admin"), newAdmin.publicKey.toBuffer()],
+      program.programId
+    );
+    const [caseLookupPDA, caseLookupBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("case_lookup"), Buffer.from("CASE0001")],
+      program.programId
+    );
+
+    const [verifier1PDA, verifier1Bump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("verifier_role"), verifier1Keypair.publicKey.toBuffer()],
+      program.programId
+    );
+    const [verifier2PDA, verifier2Bump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("verifier_role"), verifier2Keypair.publicKey.toBuffer()],
+      program.programId
+    );
+    const [verifier3PDA, verifier3Bump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("verifier_role"), verifier3Keypair.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const facility_address = anchor.web3.Keypair.generate();
+
+    const escrowBal = await program.provider.connection.getBalance(
+      patient1EscrowPDA
+    );
+    console.log("Escrow Balance Prior To Release Is:, ", escrowBal);
+
+    // Let's call the instruction
+    await program.methods
+      .releaseFunds("CASE0001")
+      .accounts({
+        admin: newAdmin.publicKey,
+        // @ts-ignore
+        adminAccount: adminPDA,
+        patientCase: patient1CasePDA,
+        patientEscrow: patient1EscrowPDA,
+        caseLookup: caseLookupPDA,
+        verifiersList: verifiersListPDA,
+        verifier1: verifier1Keypair.publicKey,
+        verifier2: verifier2Keypair.publicKey,
+        verifier3: verifier3Keypair.publicKey,
+        verifier1Pda: verifier1PDA,
+        verifier2Pda: verifier2PDA,
+        verifier3Pda: verifier3PDA,
+        facilityAddress: facility_address.publicKey,
+      })
+      .signers([newAdmin, verifier1Keypair, verifier2Keypair, verifier3Keypair])
+      .rpc();
   });
 });

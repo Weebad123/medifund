@@ -42,9 +42,30 @@ pub enum MedifundError{
     #[msg("Possible Overflow Error Detected")]
     OverflowError,
 
+    #[msg("Possible Underflow Error Detected")]
+    UnderflowError,
+
     #[msg("Escrow Account Creation For Patient Was Unsuccessful")]
     EscrowCreationFailed,
 
+    #[msg("Escrow Account For Case Does Not Exist")]
+    EscrowNotExist,
+
     #[msg("Escrow Account Verification With Passed Account Failed")]
     InvalidEscrowPDA,
+
+    #[msg("Cannot Donate A Zero Amount")]
+    NonZeroAmount,
+
+    #[msg("Donations Exceeds Total Needed Treatment Amount: Thank You")]
+    DonationsExceeded,
+
+    #[msg("Balance In Lamports Is Not Enough: Specify Lesser Amount")]
+    InsufficientBalance,
+
+    #[msg("Donations Cannot Be Made To Unverified Cases")]
+    UnverifiedCase,
+
+    #[msg("Case Has Been Fully Funded: No Need For Further Donations")]
+    CaseFullyFunded,
 }

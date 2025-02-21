@@ -196,3 +196,144 @@ pub struct VerifyPatientCase<'info> {
 
     pub system_program: Program<'info, System>,
 }
+
+
+// DONOR'S CONTEXT STRUCT
+#[derive(Accounts)]
+#[instruction(case_id: String)]
+pub struct Donation<'info> {
+    #[account(mut)]
+    pub donor: Signer<'info>,
+
+    // Get Case Lookup pda using specified Case ID
+    #[account(
+        mut,
+        seeds = [b"case_lookup", case_id.as_bytes()],
+        bump = case_lookup.case_lookup_bump,
+        constraint = case_lookup.case_id_in_lookup == case_id @MedifundError::InvalidCaseID,
+    )]
+    pub case_lookup: Account<'info, CaseIDLookup>,
+
+    // We Use the case_lookup to find the Patient case
+    #[account(
+        mut,
+        seeds = [b"patient", case_lookup.patient_address.as_ref()],
+        bump = patient_case.patient_case_bump,
+        constraint = patient_case.key() == case_lookup.patient_pda.key() @ MedifundError::InvalidCaseID,
+        constraint = patient_case.case_id == case_id @ MedifundError::InvalidCaseID,
+    )]
+    pub patient_case: Account<'info, PatientCase>,
+
+    /// CHECKED: This account has already been created and it's safe now. 
+    #[account(
+        mut,
+        //seeds = [b"patient_escrow", patient_case.case_id.as_bytes() ,patient_case.key().as_ref(),],
+        //bump = case_lookup.patient_escrow_bump,
+    )]
+    pub patient_escrow: UncheckedAccount<'info>,
+
+    // Donor Info PDA here
+    #[account(
+        init_if_needed,
+        payer = donor,
+        seeds = [b"donor", donor.key().as_ref()],
+        bump,
+        space = 8 + DonorInfo::INIT_SPACE,
+    )]
+    pub donor_account: Account<'info, DonorInfo>,
+
+    pub system_program: Program<'info, System>,
+}
+
+
+
+// FUND RELEASAL TO TREATMENT FACILITY
+#[derive(Accounts)]
+#[instruction(case_id: String)]
+pub struct ReleaseFunds<'info> {
+    // Get Case Lookup pda using specified Case ID
+    #[account(
+        mut,
+        seeds = [b"case_lookup", case_id.as_bytes()],
+        bump = case_lookup.case_lookup_bump,
+        constraint = case_lookup.case_id_in_lookup == case_id @MedifundError::InvalidCaseID,
+    )]
+    pub case_lookup: Account<'info, CaseIDLookup>,
+
+    // We Use the case_lookup to find the Patient case
+    #[account(
+        mut,
+        seeds = [b"patient", case_lookup.patient_address.as_ref()],
+        bump = patient_case.patient_case_bump,
+        constraint = patient_case.key() == case_lookup.patient_pda.key() @ MedifundError::InvalidCaseID,
+        constraint = patient_case.case_id == case_id @ MedifundError::InvalidCaseID,
+    )]
+    pub patient_case: Account<'info, PatientCase>,
+
+    /// CHECKED: This account has already been created and it's safe now. 
+    #[account(
+        mut,
+        seeds = [b"patient_escrow", case_id.as_bytes() ,patient_case.key().as_ref(),],
+        bump = case_lookup.patient_escrow_bump,
+    )]
+    pub patient_escrow: UncheckedAccount<'info>,
+
+    ///CHECKED: The Facility Address To Receive Funds For Patient Treatment
+    pub facility_address: UncheckedAccount<'info>,
+
+    // The Multisig To Sign The Transactions, 1 Admins, plus 3 Verifiers
+    #[account(
+        mut,
+        constraint = admin.key() == admin_account.admin_pubkey.key() @ MedifundError::OnlyAdmin,
+    )]
+    pub admin: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"admin", admin.key().as_ref()],
+        bump = admin_account.bump
+    )]
+    pub admin_account: Account<'info, Administrator>,
+
+
+    // The Verifiers For The Mutlisig
+    #[account(mut)]
+    pub verifier1: Signer<'info>,
+
+    #[account(mut)]
+    pub verifier2: Signer<'info>,
+
+    #[account(mut)]
+    pub verifier3: Signer<'info>,
+
+    // Get Verifiers PDAs
+    #[account(
+        mut,
+        seeds = [b"verifier_role", verifier1.key().as_ref()],
+        bump = verifier1_pda.verifier_bump
+    )]
+    pub verifier1_pda: Account<'info, Verifier>,
+
+    #[account(
+        mut,
+        seeds = [b"verifier_role", verifier2.key().as_ref()],
+        bump = verifier2_pda.verifier_bump
+    )]
+    pub verifier2_pda: Account<'info, Verifier>,
+
+    #[account(
+        mut,
+        seeds = [b"verifier_role", verifier3.key().as_ref()],
+        bump = verifier3_pda.verifier_bump
+    )]
+    pub verifier3_pda: Account<'info, Verifier>,
+
+    // Verifiers Registry To Confirm the verifiers
+    #[account(
+        seeds = [b"verifiers_list"],
+        bump = verifiers_list.verifier_registry_bump,
+    )]
+    pub verifiers_list: Account<'info, VerifiersList>,
+
+    pub system_program: Program<'info, System>,
+}

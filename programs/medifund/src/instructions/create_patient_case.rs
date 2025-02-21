@@ -52,6 +52,7 @@ pub fn initialize_patient(
                 patient_case_bump: ctx.bumps.patient_case,
                 case_id: patient_case_id,
                 link_to_records: encrypted_medical_link,
+                case_funded: false,
             }
         );
 

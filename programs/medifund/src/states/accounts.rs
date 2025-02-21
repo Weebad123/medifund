@@ -28,7 +28,7 @@ pub struct CaseCounter {
 pub struct PatientCase {
     pub patient_pubkey: Pubkey,
 
-    #[max_len(100)]
+    #[max_len(50)]
     pub case_description: String,
 
     pub total_amount_needed: u64,
@@ -40,7 +40,7 @@ pub struct PatientCase {
     
     pub verification_yes_votes:u8,
     // list of voted verifiers on a case
-    #[max_len(100)]
+    #[max_len(50)]
     pub voted_verifiers: Vec<Pubkey>,
 
     pub verification_no_votes: u8,
@@ -48,6 +48,8 @@ pub struct PatientCase {
     pub is_verified: bool,
 
     pub patient_case_bump: u8,
+
+    pub case_funded: bool,
 
     #[max_len(64)]
     pub link_to_records: String,
@@ -66,6 +68,8 @@ pub struct CaseIDLookup{
     pub patient_address: Pubkey,
 
     pub case_lookup_bump: u8,
+
+    pub patient_escrow_bump: u8,
 }
 
 
@@ -108,19 +112,14 @@ impl VerifiersList {
     }
 }
 
-// CREATE A VOTE RECORD PDA HERE
+// CREATE A DONOR INFO PDA HERE
 #[account]
 #[derive(InitSpace)]
-pub struct VoteRecord {
-    #[max_len(10)]
-    pub case_id: String,
-    
-    pub voting_verifier: Pubkey,
+pub struct DonorInfo {
+    pub donor_address: Pubkey,
 
-    pub vote: bool,
+    pub donor_bump: u8,
 
-    pub vote_record_bump: u8,
+    pub total_donations: u64,
 }
-
-
-// CREATE THE ESCROW PDA ACCOUNT
+   

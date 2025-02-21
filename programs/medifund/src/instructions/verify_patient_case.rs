@@ -1,6 +1,6 @@
 
 
-use anchor_lang::{prelude::*, solana_program::{self, rent::Rent, system_program /*system_instruction*/}};
+use anchor_lang::{prelude::*, solana_program::{self, rent::Rent/*, system_program system_instruction*/}};
 
 use solana_program::pubkey::Pubkey;
 
@@ -63,9 +63,9 @@ pub fn approve_patient_case(ctx: Context<VerifyPatientCase>, _case_id: String, i
             create_escrow_pda(ctx)?;
         } else {
             // If not, we keep the patient case as unverified. 
-            // We close the patient case PDA account, as it failed verification.
-            //patient_details.is_verified = false;
+            patient_details.is_verified = false;
             //close_patient_case(ctx)?;
+
         }
     } 
 
@@ -76,6 +76,8 @@ fn create_escrow_pda(ctx: Context<VerifyPatientCase>) -> Result<()> {
 
     //let case_of_patient = &ctx.accounts.patient_case;
     let patient_case_key = ctx.accounts.patient_case.key();
+
+    let case_id_lookup = &mut ctx.accounts.case_lookup;
     // Get Escrow PDA address using find_program_address
     let (patient_escrow_pda, _patient_escrow_bump) = Pubkey::find_program_address(
         &[b"patient_escrow", ctx.accounts.patient_case.case_id.as_bytes(), patient_case_key.as_ref()],
@@ -86,6 +88,9 @@ fn create_escrow_pda(ctx: Context<VerifyPatientCase>) -> Result<()> {
     require!(
         *ctx.accounts.patient_escrow.key == patient_escrow_pda, MedifundError::InvalidEscrowPDA
     );
+    
+    // Let's store the patient_escrow pda bump into a field in the case_lookup 
+    case_id_lookup.patient_escrow_bump = _patient_escrow_bump;
 
     let rent = Rent::get()?;
     let space = 0;
@@ -97,7 +102,7 @@ fn create_escrow_pda(ctx: Context<VerifyPatientCase>) -> Result<()> {
         &patient_escrow_pda,
         lamports,
         space as u64,
-        &ctx.program_id
+        &solana_program::system_program::ID
     );
 
     let accounts_needed = &[
@@ -131,13 +136,19 @@ fn create_escrow_pda(ctx: Context<VerifyPatientCase>) -> Result<()> {
 
 
 
-fn close_patient_case(ctx: Context<VerifyPatientCase>) -> Result<()> {
+// MIGHT NOT IMPLEMENT THE CLOSE FUNCTIONALITY AFTER ALL.
+
+fn _close_patient_case(ctx: Context<VerifyPatientCase>) -> Result<()> {
     
-    let patient_case = &ctx.accounts.patient_case;
+    let patient_case = &mut ctx.accounts.patient_case;
 
-    let verifier = &ctx.accounts.verifier;
-    let _case_lookup = &ctx.accounts.case_lookup;
+    let verifier = &mut ctx.accounts.verifier;
+    let verifier_info = verifier.to_account_info();
+    patient_case.close(verifier_info)?;
 
+    Ok(())
+}
+/* 
     let verifier_info = verifier.to_account_info();
     let patient_case_info = patient_case.to_account_info();
     //let verifier_key = verifier.key();
@@ -200,4 +211,4 @@ fn close_patient_case(ctx: Context<VerifyPatientCase>) -> Result<()> {
    
     
     Ok(())
-}
+}*/
