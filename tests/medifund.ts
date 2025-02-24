@@ -12,6 +12,8 @@ import { publicKey } from "@coral-xyz/anchor/dist/cjs/utils";
 
 describe("medifund", () => {
   // Configure the client to use the local cluster.
+
+  /////////////  ..................             TEST SETUP        ......................   ////////
   const provider = anchor.AnchorProvider.env();
 
   anchor.setProvider(provider);
@@ -38,6 +40,7 @@ describe("medifund", () => {
   const patient1Keypair = anchor.web3.Keypair.generate(); // 2 SOL
   const patient2Keypair = anchor.web3.Keypair.generate(); // 2 SOL
   const patient3Keypair = anchor.web3.Keypair.generate(); // 2 SOL
+  const facility_address = anchor.web3.Keypair.generate();
 
   /* Let's write the Airdrop function below */
   async function airdropSol(provider, publicKey, amountSol) {
@@ -71,7 +74,7 @@ describe("medifund", () => {
       ],
       10
     );
-    // Set up Verifier and Patients with 2 SOL
+    // Set up Verifier and Patients with 5 SOL
     await setupActors(
       provider,
       [
@@ -90,9 +93,14 @@ describe("medifund", () => {
         patient2Keypair.publicKey,
         patient3Keypair.publicKey,
       ],
-      2
+      5
     );
   });
+
+  /*  ...........                   ADMIN      
+                                  INITIALIZATION        
+                                    TEST           
+                                                                       ..............*/
 
   it("TEST 1 ::::: Admin Initialization Done Correctly !!!", async () => {
     // Add your test here.
@@ -121,6 +129,11 @@ describe("medifund", () => {
     expect(adminDetails.bump).to.eq(adminBump);
   });
 
+  /*         .......................          INITIALIZING        
+                                          VERIFIERS GLOBAL REGISTRY
+                                                AND
+                                            CASE COUNTER  TEST
+                                                                        ................. */
   // LET'S WRITE A TEST TO INITIALIZE THE VERIFIERS GLOBAL REGISTRY AND CASE COUNTER
   it("TEST 2 ::::: Admin Initializing The Global Registry Of Verifiers And Case ID Counter for Patients Submissions!!!", async () => {
     //
@@ -160,10 +173,7 @@ describe("medifund", () => {
     const globalVerifiersListData = await program.account.verifiersList.fetch(
       verifiersRegistryPDA
     );
-    console.log(
-      "The length of the Verifiers List is: ",
-      globalVerifiersListData.allVerifiers.length
-    );
+
     expect(globalVerifiersListData.allVerifiers.length).to.equal(0);
 
     // Let's Fetch The Global Case Counter and Make Assertions
@@ -173,6 +183,11 @@ describe("medifund", () => {
     expect(caseCounterData.currentId.toNumber()).to.equal(0);
     expect(caseCounterData.counterBump).to.equal(caseCounterBump);
   });
+
+  /*         .....................      ADMIN ADDING 
+                                      5 TRUSTED  VERIFIERS
+                                        TEST
+                                                              .....................       */
 
   it("TEST 3 :::::  Admin Adding 1-5 Verifiers Done Correctly !!!", async () => {
     // Let's initialize admin account here:
@@ -217,35 +232,6 @@ describe("medifund", () => {
       program.programId
     );
 
-    // Let's get the Verifier7 PDA address
-    const [verifier7PDA, verifier7Bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("verifier_role"), verifier7Keypair.publicKey.toBuffer()],
-      program.programId
-    );
-
-    // Let's get the Verifier8 PDA address
-    const [verifier8PDA, verifier8Bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("verifier_role"), verifier8Keypair.publicKey.toBuffer()],
-      program.programId
-    );
-
-    // Let's get the Verifier9 PDA address
-    const [verifier9PDA, verifier9Bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("verifier_role"), verifier9Keypair.publicKey.toBuffer()],
-      program.programId
-    );
-
-    // Let's get the Verifier10 PDA address
-    const [verifier10PDA, verifier10Bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("verifier_role"), verifier10Keypair.publicKey.toBuffer()],
-      program.programId
-    );
-
-    // Let's get the Verifier11 PDA address
-    const [verifier11PDA, verifier11Bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("verifier_role"), verifier11Keypair.publicKey.toBuffer()],
-      program.programId
-    );
     // Let's get the Global Registry PDA
     const [verifiersRegistryPDA, verifiersRegistryBump] =
       PublicKey.findProgramAddressSync(
@@ -339,76 +325,7 @@ describe("medifund", () => {
       })
       .signers([newAdmin])
       .rpc();
-    /*
-    // Adding Verifier 7
-    await program.methods
-      .addOrRemoveVerifier(verifier7Keypair.publicKey, { add: {} })
-      .accountsPartial({
-        admin: newAdmin.publicKey,
-        // @ts-ignore
-        adminAccount: adminPDA,
-        verifier: verifier7PDA,
-        verifiersList: verifiersRegistryPDA,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([newAdmin])
-      .rpc();
 
-    // Adding Verifier 8
-    await program.methods
-      .addOrRemoveVerifier(verifier8Keypair.publicKey, { add: {} })
-      .accountsPartial({
-        admin: newAdmin.publicKey,
-        // @ts-ignore
-        adminAccount: adminPDA,
-        verifier: verifier8PDA,
-        verifiersList: verifiersRegistryPDA,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([newAdmin])
-      .rpc();
-
-    // Adding Verifier 9
-    await program.methods
-      .addOrRemoveVerifier(verifier9Keypair.publicKey, { add: {} })
-      .accountsPartial({
-        admin: newAdmin.publicKey,
-        // @ts-ignore
-        adminAccount: adminPDA,
-        verifier: verifier9PDA,
-        verifiersList: verifiersRegistryPDA,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([newAdmin])
-      .rpc();
-
-    // Adding Verifier 10
-    await program.methods
-      .addOrRemoveVerifier(verifier10Keypair.publicKey, { add: {} })
-      .accountsPartial({
-        admin: newAdmin.publicKey,
-        // @ts-ignore
-        adminAccount: adminPDA,
-        verifier: verifier10PDA,
-        verifiersList: verifiersRegistryPDA,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([newAdmin])
-      .rpc();
-
-    // Adding Verifier 11
-    await program.methods
-      .addOrRemoveVerifier(verifier11Keypair.publicKey, { add: {} })
-      .accountsPartial({
-        admin: newAdmin.publicKey,
-        // @ts-ignore
-        adminAccount: adminPDA,
-        verifier: verifier11PDA,
-        verifiersList: verifiersRegistryPDA,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([newAdmin])
-      .rpc();*/
     // Asserting Verifier 1 Data Initialized correctly
     const verifier1Details = await program.account.verifier.fetch(verifier1PDA);
     expect(verifier1Details.verifierKey.toBuffer()).deep.equal(
@@ -428,12 +345,13 @@ describe("medifund", () => {
     const globalVerifiersListData = await program.account.verifiersList.fetch(
       verifiersRegistryPDA
     );
-    console.log(
-      "The number of verifiers in the Registry after adding is: ",
-      globalVerifiersListData.allVerifiers.length
-    );
     expect(globalVerifiersListData.allVerifiers.length).to.equal(6);
   });
+
+  /*      ......................      ADMIN REVOKING AND
+                                    REMOVING A VERIFIER FROM THE 
+                                    GLOBAL REGISTRY OF VERIFIERS             
+                                                                              ...............   */
 
   it("TEST 4 ::::::: Admin Removing Verifier 4 From The Global Registry !!!", async () => {
     // Let's get Verifier 1 PDA address
@@ -473,12 +391,14 @@ describe("medifund", () => {
     const globalVerifiersListData = await program.account.verifiersList.fetch(
       verifiersRegistryPDA
     );
-    console.log(
-      "The number of verifiers in the Registry after REMOVING verifier 4 is: ",
-      globalVerifiersListData.allVerifiers.length
-    );
+
     expect(globalVerifiersListData.allVerifiers.length).to.equal(5);
   });
+
+  /*        ......................   ONLY ADMIN CAN
+                                  ADD OR REMOVE A VERIFIER TO 
+                                  OR FROM THE GLOBAL REGISTRY OF VERIFIERS
+                                                                               ...................       */
 
   it("TEST 5 ::::: Unhappy Scenario:  : : Only Admin Can Initialize (Add or Remove) A Verifier !!!!", async () => {
     // Let's set up the Admin and Verifier PDAs
@@ -499,7 +419,7 @@ describe("medifund", () => {
         program.programId
       );
 
-    // We will try to call the initialize verifier from a different account
+    // We will try to call the addOrRemoveVerifier instruction from a different account
     try {
       // Let's call the initialize verifier instruction
       await program.methods
@@ -515,10 +435,14 @@ describe("medifund", () => {
         .signers([patient1Keypair])
         .rpc();
     } catch (err: any) {
-      //console.log("Detailed Errors is: ", err);
       expect(err.error.errorCode.code).to.equal("OnlyAdmin");
     }
   });
+
+  /*       .........................      PATIENTS CAN
+                                    SUBMIT THEIR MEDICAL 
+                                      CASES SUCCESSFULLY 
+                                                                      ......................     */
 
   it("TEST 6 :::::: Patient 1 and 2 and 3 Submit First Medical Case !!! ", async () => {
     // We setting up the respective PDAs
@@ -722,12 +646,6 @@ describe("medifund", () => {
       patient3CaseData.linkToRecords
     );
 
-    // Log case Counter
-    console.log(
-      "The Current Case Counter is: ",
-      caseCounterDataAll.currentId.toNumber()
-    );
-
     // Let's Make The Assertions For Patient 1 Here
     expect(patient1CaseData.caseId.toString()).to.eq("CASE0001");
     expect(patient1CaseData.caseDescription.toString()).contains(
@@ -750,6 +668,15 @@ describe("medifund", () => {
     expect(patient2CaseData.totalAmountNeeded.toNumber()).to.eq(50000);
     expect(patient2CaseData.totalRaised.toNumber()).to.eq(0);
   });
+
+  /*       .....................       VERIFICATION        TESTS
+                                        ON A SUBMITTED     CASES
+                                                                        ..............     */
+
+  /* ........     VERIFICATION WORKS CORRECTLY FOR A CASE
+                                THAT PASSES THE 70% APPROVAL THRESHOLD
+                                AND 50% QUORUM OF VERIFIERS    
+                                                                        ..........      */
 
   // Testing for Verification On Patient 1 Case
   it("TEST 7 :::::  4 Verifiers (1, 2, 3, 5) Verify Patient 1 Case: 5 Total Verifiers Initialized, 3 Votes a YES, and 1 a NO !!!", async () => {
@@ -876,23 +803,20 @@ describe("medifund", () => {
       patient1CasePDA
     );
 
-    // Let's log and see if vote was captured
-    console.log(
-      "The total No Verification Votes for Patient 1 is: ",
-      Patient1VerificationData.verificationNoVotes
-    );
+    // No Votes For Patient 1 Case = 1
+    expect(Patient1VerificationData.verificationNoVotes).to.eq(1);
 
-    console.log(
-      "The Total Yes Verification Votes for Patient 1 is: ",
-      Patient1VerificationData.verificationYesVotes
-    );
+    // Yes Votes For Patient 1 Case = 3
+    expect(Patient1VerificationData.verificationYesVotes).to.eq(3);
 
-    console.log(
-      "The verification status for Patient 1 is: ",
-      Patient1VerificationData.isVerified
-    );
+    // Verification Status is True
+    expect(Patient1VerificationData.isVerified).to.be.true;
   });
 
+  /*      ................          VERIFICATION 70% APPROVAL THRESHOLD WAS NOT REACHED, 
+                                      SO CASE 2 REMAINS UNVERIFIED:
+                                          THRESOLD WORKING CORRECTLY       
+                                                                                                 ...........  */
   // Testing for Verification On Patient 2 Case
   it("TEST 8 ::::::  5 Verifiers (1, 2, 3, 5, 6) On Patient 2 Case: 5 Initialized, 3 Votes a YES, and 2 a NO. 70% threshold working!!!", async () => {
     // Testing For Verification Purposes on Patient 2 Case
@@ -1038,21 +962,20 @@ describe("medifund", () => {
       patient2CasePDA
     );
 
-    console.log(
-      "The total Yes Votes For Patient Case 2 is: ",
-      patient2VerificationData.verificationYesVotes
-    );
+    // Yes Verification Votes For Patient Case 2 = 3
+    expect(patient2VerificationData.verificationYesVotes).to.eq(3);
 
-    console.log(
-      "The total No Votes For Patient Case 2 is: ",
-      patient2VerificationData.verificationNoVotes
-    );
+    // No Verification Votes For Patient Case 2 = 2
+    expect(patient2VerificationData.verificationNoVotes).to.eq(2);
 
-    console.log(
-      "The Verification Status For Patient Case 2 is: ",
-      patient2VerificationData.isVerified
-    );
+    // Verification status for Patient Case 2 is false
+    expect(patient2VerificationData.isVerified).to.be.false;
   });
+
+  /*          ........................    VERIFICATION IS REJECTED, 
+                                        AS APPROVAL THRESHOLD CLEARLY FAILED
+                                        FOR PATIENT CASE 3
+                                                                                  .................        */
 
   it("TEST 9 :::::: 4 Verifiers (2, 3, 5, 6) On Patient 3 Case: 3 Vote a NO, 1 vote a YES. Patient Case Account Is Not Verified", async () => {
     // Let's Get The Patient PDAs
@@ -1157,7 +1080,7 @@ describe("medifund", () => {
       program.programId
     );
     await program.methods
-      .verifyPatient("CASE0003", false)
+      .verifyPatient("CASE0003", true)
       .accounts({
         verifier: verifier6Keypair.publicKey,
         // @ts-ignore
@@ -1175,9 +1098,20 @@ describe("medifund", () => {
     const patient3CaseData = await program.account.patientCase.fetch(
       patient3CasePDA
     );
-    //console.log("PATIENT 3 CASE DATA IS: ", patient3CaseData);
+    // Yes Verification Votes On Patient Case 3 = 1
+    expect(patient3CaseData.verificationYesVotes).to.eq(1);
+
+    // No Verification Votes on Patient Case 3 = 3
+    expect(patient3CaseData.verificationNoVotes).to.eq(3);
+
+    // Verification Status For Patient Case 3 is clearly rejected, false
     expect(patient3CaseData.isVerified).to.be.false;
   });
+
+  /*       ..............................        A VERIFIER CANNOT
+                                            VOTE TWICE ON A PARTICULAR CASE,
+                                                    BUT ONLY ONCE    
+                                                                                          .......................    */
 
   it(" TEST 10 ::::: ===>UNHAPPY SCENARIO::::::::::::::: A Verifier Cannot Vote Twice On A Particular Case", async () => {
     // Verifier 5 Voted On Case 2 In The Prior Test
@@ -1219,7 +1153,7 @@ describe("medifund", () => {
       program.programId
     );
 
-    // Let's Ascertain If The Transaction Will Revert If He Attempts to Vote on Case 2 Again
+    // Let's Ascertain If The Transaction Will Revert If Verifier 5 Attempts to Vote on Case 2 Again
     try {
       await program.methods
         .verifyPatient("CASE0002", true)
@@ -1240,6 +1174,10 @@ describe("medifund", () => {
       expect(err.error.errorCode.code).to.equal("VerifierAlreadyVoted");
     }
   });
+
+  /*               .................................  A VERIFIER CANNOT
+                                                  VOTE ON AN ALREADY VERIFIED CASE
+                                                                                        ......................          */
 
   it("TEST 11 :::::  UNHAPPY SCENARIO:::::::::::::::: A Verifier Cannot Vote On An Already Verified Case  ==> Verifier6 Cannot Vote On Case 1, Which is Already Verified", async () => {
     //Verifier 6 Did Not Vote On Case 1 prior to it being verified.
@@ -1302,6 +1240,14 @@ describe("medifund", () => {
     }
   });
 
+  /*           ..........................                DONATIONS TO
+                                                        PATIENT CASES  
+                                                        TESTINGS
+                                                                                ....................   */
+
+  /*   ...................         DONATIONS MADE TO VERIFIED CASE
+                                          WORKS CORRECTLY AND SUCCESSFULLY
+                                                                                  ................... */
   /// TESTING THAT DONATIONS WORK
   it("TEST 12  =====>>>>> 2 Donors Contributing Funds To A Verified Case I, Works Correctly", async () => {
     // Let's get the various PDAs
@@ -1338,6 +1284,9 @@ describe("medifund", () => {
       program.programId
     );
 
+    // Every created PDA account in solana needs a rent-exempt.
+    //So, i get the rent exempt for an account with 0 data, which is 890880 lamports
+    // This is to get the actual lamports in the escrow PDA account excluding the rent-exempt
     const rentExempt =
       await program.provider.connection.getMinimumBalanceForRentExemption(0);
 
@@ -1405,13 +1354,19 @@ describe("medifund", () => {
     const escrowPDAbalance = await program.provider.connection.getBalance(
       patient1EscrowPDA
     );
+    // donated funds + rent-exempt value = total lamports in escrowPDA account.
+    // 19600 + 890880 = 910480 lamports
+    expect(escrowPDAbalance).eq(910480);
+    // Escrow PDA balance excluding the rent-Exempt = the donated funds
     const escrowPDAbalanceActual = escrowPDAbalance - rentExempt;
-    console.log(
-      "The balance of Patient 1 Escrow PDA is: ",
-      escrowPDAbalanceActual
-    );
+
     expect(escrowPDAbalanceActual).eq(19600);
   });
+
+  /*      .....................                 DONORS ATTEMPT TO 
+                                      CONTRIBUTE TO AN UNVERIFIED CASE 2 OR 3
+                                              WILL FAIL CERTAINLY
+                                                                                      ................  */
 
   it("TEST 13  ==>>> Donors Attempt To Contribute To An Unverified Case II or III, Must Fail", async () => {
     // Testing For Case II
@@ -1465,6 +1420,11 @@ describe("medifund", () => {
     }
   });
 
+  /*           .......................           RELEASE OF FUNDS 
+                                                  TO TREATMENT WALLET 
+                                                TESTINGS
+                                                                                ...........................  */
+
   it("TEST 14  ---------- Authorized Multisig Can Release Funds From Escrow To Treatment Wallet", async () => {
     // let's get required pdas
     const [patient1CasePDA, patient1CaseBump] =
@@ -1508,14 +1468,23 @@ describe("medifund", () => {
       program.programId
     );
 
-    const facility_address = anchor.web3.Keypair.generate();
+    // We Assumed the Facility Wallet Has 1 SOL already prior to receiving the donated funds
+    // hence the airdrop below
+
+    await airdropSol(provider, facility_address.publicKey, 1);
+    // Ensure prior to Receiving Patient Treatment Funds From Escrow PDA, facility wallet has 1 SOL already
+    const facilityBalanceBeforeTransfer =
+      await program.provider.connection.getBalance(facility_address.publicKey);
+    expect(facilityBalanceBeforeTransfer).to.eq(1000000000);
 
     const escrowBal = await program.provider.connection.getBalance(
       patient1EscrowPDA
     );
-    console.log("Escrow Balance Prior To Release Is:, ", escrowBal);
 
-    // Let's call the instruction
+    // Patient 1 Escrow PDA received 19600(donations) + rent-exempt(890880) = 910480. This is its balance prior to release_funds instruction
+    expect(escrowBal).to.eq(910480);
+
+    // Let's call the release_funds instruction
     await program.methods
       .releaseFunds("CASE0001")
       .accounts({
@@ -1526,6 +1495,7 @@ describe("medifund", () => {
         patientEscrow: patient1EscrowPDA,
         caseLookup: caseLookupPDA,
         verifiersList: verifiersListPDA,
+        // @ts-ignore
         verifier1: verifier1Keypair.publicKey,
         verifier2: verifier2Keypair.publicKey,
         verifier3: verifier3Keypair.publicKey,
@@ -1535,6 +1505,239 @@ describe("medifund", () => {
         facilityAddress: facility_address.publicKey,
       })
       .signers([newAdmin, verifier1Keypair, verifier2Keypair, verifier3Keypair])
+      .rpc();
+    const escrowBalAfter = await program.provider.connection.getBalance(
+      patient1EscrowPDA
+    );
+    // The Escrow Balance After Release Should Be The Rent-exempt balane
+    expect(escrowBalAfter).to.eq(890880);
+
+    const facilityBalance = await program.provider.connection.getBalance(
+      facility_address.publicKey
+    );
+
+    // The Facility Wallet Upon Receiving The Funds From The Escrow PDA should be the donated amount + its 1 SOL balance prior
+    expect(facilityBalance).to.eq(1000019600);
+  });
+
+  /*        ..................   ONLY AUTHORIZED MULTISIG {
+                            ADMIN PLUS 3 VERIFIERS} CAN RELEASE
+                            THE FUNDS TO THE TREATMENT WALLET ADDRESSS
+                                                                            ..................  */
+
+  it("TEST 15  ::::::::::   ====>>>> UNHAPPY SCENARIO   :::   Only Authorized Admin plus 3 Verifiers Can Release Funds To Treatment Wallet", async () => {
+    // Let Get Respective PDAs
+    const [patient1CasePDA, patient1CaseBump] =
+      PublicKey.findProgramAddressSync(
+        [Buffer.from("patient"), patient1Keypair.publicKey.toBuffer()],
+        program.programId
+      );
+    const [patient1EscrowPDA, patient1EscrowBump] =
+      PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("patient_escrow"),
+          Buffer.from("CASE0001"),
+          patient1CasePDA.toBuffer(),
+        ],
+        program.programId
+      );
+    const [verifiersListPDA, verifiersListBump] =
+      PublicKey.findProgramAddressSync(
+        [Buffer.from("verifiers_list")],
+        program.programId
+      );
+    const [adminPDA, adminBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("admin"), newAdmin.publicKey.toBuffer()],
+      program.programId
+    );
+    const [caseLookupPDA, caseLookupBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("case_lookup"), Buffer.from("CASE0001")],
+      program.programId
+    );
+
+    const [patient1PDA, patient1Bump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("verifier_role"), patient1Keypair.publicKey.toBuffer()],
+      program.programId
+    );
+    const [verifier2PDA, verifier2Bump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("verifier_role"), verifier2Keypair.publicKey.toBuffer()],
+      program.programId
+    );
+    const [verifier3PDA, verifier3Bump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("verifier_role"), verifier3Keypair.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const [donor3PDA, donor1Bump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("donor"), donor3Keypair.publicKey.toBuffer()],
+      program.programId
+    );
+    const [caseCounterPDA, caseCounterBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("case_counter")],
+      program.programId
+    );
+
+    // Let Donor 3 contribute 300 lamports to verified case 1, and then We try to release funds
+    await program.methods
+      .donate("CASE0001", new BN(300))
+      .accounts({
+        donor: donor3Keypair.publicKey,
+        // @ts-ignore
+        caseLookup: caseLookupPDA,
+        patientCase: patient1CasePDA,
+        patientEscrow: patient1EscrowPDA,
+        caseCounter: caseCounterPDA,
+        donorAccount: donor3PDA,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([donor3Keypair])
+      .rpc();
+
+    // Let's ensure the escrow PDA now has rent-exempt(890880) + 300 lamports
+    const escrowPatient1Bal = await program.provider.connection.getBalance(
+      patient1EscrowPDA
+    );
+    expect(escrowPatient1Bal).to.eq(891180);
+
+    // Now, Let's try to release that 300 lamports to the facility wallet
+    try {
+      await program.methods
+        .releaseFunds("CASE0001")
+        .accounts({
+          admin: newAdmin.publicKey,
+          // @ts-ignore
+          adminAccount: adminPDA,
+          patientCase: patient1CasePDA,
+          patientEscrow: patient1EscrowPDA,
+          caseLookup: caseLookupPDA,
+          verifiersList: verifiersListPDA,
+          // @ts-ignore
+          verifier1: patient1Keypair.publicKey,
+          verifier2: verifier2Keypair.publicKey,
+          verifier3: verifier3Keypair.publicKey,
+          verifier1Pda: patient1PDA, // used patient1 public key to derive pda, but that address has not been initialized as a verifier
+          verifier2Pda: verifier2PDA,
+          verifier3Pda: verifier3PDA,
+          facilityAddress: facility_address.publicKey,
+        })
+        .signers([
+          newAdmin,
+          patient1Keypair,
+          verifier2Keypair,
+          verifier3Keypair,
+        ])
+        .rpc();
+    } catch (err) {
+      expect(err.error.errorCode.code).to.eq("AccountNotInitialized");
+    }
+  });
+
+  /*          .....................         CLOSING OF REJECTED CASE
+                                                  TESTINGS
+                                                                                    ..................   */
+
+  it("TEST 16  --------------     ANY USER CAN CLOSE A REJECTED CASE", async () => {
+    // Let's get the respective PDAs
+    // Pretty Clear Case 3 Was Rejected, as out of 4 Verifiers, 3 rejected and only 1 approved.
+    const [caseLookupPDA, caseLookupBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("case_lookup"), Buffer.from("CASE0003")],
+      program.programId
+    );
+    const [verifiersListPDA, verifiersListBump] =
+      PublicKey.findProgramAddressSync(
+        [Buffer.from("verifiers_list")],
+        program.programId
+      );
+    const [patient3CasePDA, patient3CaseBump] =
+      PublicKey.findProgramAddressSync(
+        [Buffer.from("patient"), patient3Keypair.publicKey.toBuffer()],
+        program.programId
+      );
+
+    // Let Patient 2 call that instruction
+    await program.methods
+      .closeRejectedCase("CASE0003")
+      .accounts({
+        user: patient2Keypair.publicKey,
+        // @ts-ignore
+        caseLookup: caseLookupPDA,
+        patientCase: patient3CasePDA,
+        verifiersList: verifiersListPDA,
+      })
+      .signers([patient2Keypair])
+      .rpc();
+
+    // I will make further assertions to ascertain that indeed patient case 3 pda no longer exist
+    // TODO!!!
+  });
+
+  /*     .............................. A VERIFIED CASE CAN NEVER
+                                              BE CLOSED
+                                                                      ....................     */
+
+  it("TEST 17  ------------      A VERIFIED CASE CAN NOT BE CLOSED, NOT EVEN BY ADMIN", async () => {
+    // Pretty Clear Case I is verified. Attempt to close it will produce an error
+    const [caseLookupPDA, caseLookupBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("case_lookup"), Buffer.from("CASE0001")],
+      program.programId
+    );
+    const [verifiersListPDA, verifiersListBump] =
+      PublicKey.findProgramAddressSync(
+        [Buffer.from("verifiers_list")],
+        program.programId
+      );
+    const [patient1CasePDA, patient1CaseBump] =
+      PublicKey.findProgramAddressSync(
+        [Buffer.from("patient"), patient1Keypair.publicKey.toBuffer()],
+        program.programId
+      );
+
+    try {
+      // Let admin call that instruction
+      await program.methods
+        .closeRejectedCase("CASE0001")
+        .accounts({
+          user: newAdmin.publicKey,
+          // @ts-ignore
+          caseLookup: caseLookupPDA,
+          patientCase: patient1CasePDA,
+          verifiersList: verifiersListPDA,
+        })
+        .signers([newAdmin])
+        .rpc();
+    } catch (err) {
+      expect(err.error.errorCode.code).to.eq("CaseAlreadyVerified");
+    }
+  });
+
+  it("TEST 18   ------------  A CASE THAT HAS NOT ALREADY REACHED THE 70% QUORUM CAN NOT BE CLOSED", async () => {
+    // Pretty Clear Case I is verified. Attempt to close it will produce an error
+    const [caseLookupPDA, caseLookupBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("case_lookup"), Buffer.from("CASE0002")],
+      program.programId
+    );
+    const [verifiersListPDA, verifiersListBump] =
+      PublicKey.findProgramAddressSync(
+        [Buffer.from("verifiers_list")],
+        program.programId
+      );
+    const [patient2CasePDA, patient2CaseBump] =
+      PublicKey.findProgramAddressSync(
+        [Buffer.from("patient"), patient2Keypair.publicKey.toBuffer()],
+        program.programId
+      );
+
+    // Let admin call that instruction
+    await program.methods
+      .closeRejectedCase("CASE0002")
+      .accounts({
+        user: newAdmin.publicKey,
+        // @ts-ignore
+        caseLookup: caseLookupPDA,
+        patientCase: patient2CasePDA,
+        verifiersList: verifiersListPDA,
+      })
+      .signers([newAdmin])
       .rpc();
   });
 });

@@ -1,11 +1,11 @@
 use anchor_lang::{prelude::*, system_program::{Transfer, transfer}};
 
-use crate::states::{contexts::*, errors::*};
+use crate::states::{contexts::*, errors::*, DonationsMade};
 
 
 
 
-pub fn donate_funds_to_patient_escrow(ctx: Context<Donation>, _case_id: String, amount_to_donate: u64) -> Result<()> {
+pub fn donate_funds_to_patient_escrow(ctx: Context<Donation>, case_id: String, amount_to_donate: u64) -> Result<()> {
     // Check to ensure if case is verified or not.
     require!(ctx.accounts.patient_case.is_verified == true, MedifundError::UnverifiedCase);
     // Let's Get the Patient Escrow PDA, Patient Case and Donor PDAs
@@ -14,6 +14,7 @@ pub fn donate_funds_to_patient_escrow(ctx: Context<Donation>, _case_id: String, 
     let donor_info = &mut ctx.accounts.donor_account;
 
     let donor = &ctx.accounts.donor;
+
 
     // We Need To Prevent Overfunding of a case
     require!(patient_case.case_funded == false, MedifundError::CaseFullyFunded);
@@ -33,8 +34,8 @@ pub fn donate_funds_to_patient_escrow(ctx: Context<Donation>, _case_id: String, 
 
     // Let's Update the patient-case with these infos
     patient_case.total_raised = patient_case.total_raised.checked_add(amount_to_donate).ok_or(MedifundError::OverflowError)?;
-    // Ensure raised amount does not exceed needed amount
-    require!(patient_case.total_raised <= patient_case.total_amount_needed, MedifundError::DonationsExceeded);
+    // Ensure raised amount does not exceed needed amount + 1 SOL (to compensate rent-exempt)
+    require!(patient_case.total_raised <= patient_case.total_amount_needed + 1000000000, MedifundError::DonationsExceeded);
 
     // Now, we need to perform the actual transfer from donor to patient_escrow via cpi
     let cpi_program = ctx.accounts.system_program.to_account_info();
@@ -47,6 +48,18 @@ pub fn donate_funds_to_patient_escrow(ctx: Context<Donation>, _case_id: String, 
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
 
     transfer(cpi_ctx, amount_to_donate)?;
+
+    // CATCHING THIS EVENT ON-CHAIN ANYTIME A DONATION IS MADE TO ANY CASE ID
+    let message = format!("A Donor of address {} has contributed an amount of {} to patient case of ID {}", donor.key(), amount_to_donate, case_id);
+    let current_time = Clock::get()?.unix_timestamp;
+
+    emit!(DonationsMade {
+        message,
+        donor_address: donor.key(),
+        donated_amount: amount_to_donate,
+        case_id: case_id,
+        timestamp: current_time
+    });
 
     Ok(())
 }

@@ -28,7 +28,7 @@ pub mod medifund {
         Ok(())
     }
 
-    //#[access_control(only_admin(&ctx))]
+    
     pub fn add_or_remove_verifier(ctx: Context<VerifierInfo>, verifier: Pubkey, operation_type: VerifierOperationType) -> Result<()> {
 
         match operation_type {
@@ -59,6 +59,16 @@ pub mod medifund {
         Ok(())
     }
 
+
+    // Clearly Rejected Patient Case Must Be Closed
+    #[access_control(check_patient_case_closable(&ctx, &case_id))]
+    pub fn close_rejected_case(ctx: Context<ClosePatientCase>, case_id: String) -> Result<()> {
+
+        instructions::close_patient_case(ctx, case_id)?;
+
+        Ok(())
+    }
+
     // Donors Make Donations To Patient's Escrow Accounts.
     pub fn donate(ctx: Context<Donation>, case_id: String, amount_to_donate: u64) -> Result<()> {
 
@@ -67,6 +77,7 @@ pub mod medifund {
         Ok(())
     }
 
+    // AUTHORIZED MULTISIG TRANSFERS ACCUMULATED FUNDS TO TREATMENT WALLET 
     pub fn release_funds(ctx: Context<ReleaseFunds>, case_id: String) -> Result<()> {
 
         instructions::release_funds(ctx, case_id)?;
@@ -76,28 +87,50 @@ pub mod medifund {
 }
 
 
-/* 
-fn only_admin(ctx: &Context<VerifierInfo>) -> Result<()> {
-// This function checks that there is correct seeds to generate the admin PDA
-    let (expected_admin_pda,_) = Pubkey::find_program_address(
-        &[b"admin", ctx.accounts.admin.key().as_ref()],
-        ctx.program_id
-    );
 
-    require!(
-        ctx.accounts.admin_account.key() == expected_admin_pda,
-        MedifundError::InvalidAdminAccount
-    );
-    // This checks that the caller is indeed the admin or not.. 
-    // THIS WHOLE FUNCTION is equivalent to the constraints on the VerifierInfo Struct.
-    require!(
-        ctx.accounts.admin.key() ==
-        ctx.accounts.admin_account.admin_pubkey.key(),
-        MedifundError::OnlyAdmin,
-    );
+// ........... CHECKS TO ENSURE PATIENT CASE HAS CLEARLY FAILED VERIFICATION AND SHOULD INDEED BE CLOSED ............. //
+fn check_patient_case_closable(ctx: &Context<ClosePatientCase>, _case_id: &String) -> Result<()> {
+
+    let patient_case = &ctx.accounts.patient_case;
+    let verifiers_registry = &ctx.accounts.verifiers_list;
+
+    // Check That Case Has Not Been Verified
+    require!(patient_case.is_verified == false, MedifundError::CaseAlreadyVerified);
+
+    // Get Total No and Yes Votes Cast On This Patient Case, and The Total Length of Eligible Verifiers
+    let patient_yes_votes = patient_case.verification_yes_votes;
+    let patient_no_votes = patient_case.verification_no_votes;
+    let total_verifiers = verifiers_registry.all_verifiers.len();
+
+    // Total Votes Cast On Patient Case
+    let patient_total_votes = patient_yes_votes + patient_no_votes;// Pretty Solid No Overflow Will Occur Here
+
+    // If No Votes Has Been Cast, It Means Patient Case Has Not Yet Been Verified At All
+    require!(patient_total_votes > 0, MedifundError::CaseNotYetVerified);
+
+    // ................      We Need To Ensure At Least 50% Verifiers Have Cast Their Votes            ................//
+
+    // Let's type cast both total_votes and total_verifiers to u32 and SCALE to avoid overflow and precision loss
+    let total_votes_u32_scaled = (patient_total_votes as u32).checked_mul(SCALE).ok_or(MedifundError::OverflowError)?;
+    let total_verifiers_u32_scaled = (total_verifiers as u32).checked_mul(SCALE).ok_or(MedifundError::OverflowError)?;
+
+    //Let's get Half Verifiers
+    let half_verifiers_scaled = total_verifiers_u32_scaled.checked_mul(50).ok_or(MedifundError::OverflowError)?
+        .checked_div(100).ok_or(MedifundError::OverflowError)?;
+
+    require!( total_votes_u32_scaled >= half_verifiers_scaled, MedifundError::NotEnoughVerifiers);
+
+    // We Need To Make Sure 70% quorum for Verification Approval Was Not Reached
+    let approval_threshold_70_scaled = total_votes_u32_scaled.checked_mul(70).ok_or(MedifundError::OverflowError)?
+            .checked_div(100).ok_or(MedifundError::OverflowError)?;
+
+    let yes_votes_scaled = (patient_case.verification_yes_votes as u32).checked_mul(SCALE).ok_or(MedifundError::OverflowError)?;
+
+    // Let's ensure that total yes votes was indeed less than the required 70%
+    require!(yes_votes_scaled < approval_threshold_70_scaled, MedifundError::CasePassedApproval);
+
     Ok(())
 }
-    */
 
 
 

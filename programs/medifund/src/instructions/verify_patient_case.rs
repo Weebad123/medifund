@@ -4,14 +4,13 @@ use anchor_lang::{prelude::*, solana_program::{self, rent::Rent/*, system_progra
 
 use solana_program::pubkey::Pubkey;
 
-use crate::states::{contexts::*, errors::*, constants::SCALE};
-
+use crate::states::{constants::SCALE, contexts::*, errors::*, PatientCaseVerificationStatus};
 
 
 // Let's Write The Actual Verification Instruction
 // Where The Verifiers Will Specify the CASE_ID of the original format,
 // and then vote on the verification status of the patient case.
-pub fn approve_patient_case(ctx: Context<VerifyPatientCase>, _case_id: String, is_yes: bool) -> Result<()> {
+pub fn approve_patient_case(ctx: Context<VerifyPatientCase>, case_id: String, is_yes: bool) -> Result<()> {
     // let's get the accounts under this context
 
     let patient_details = &mut ctx.accounts.patient_case;
@@ -38,9 +37,8 @@ pub fn approve_patient_case(ctx: Context<VerifyPatientCase>, _case_id: String, i
 
     // Let's get the total votes
     let total_votes = patient_details.verification_yes_votes.checked_add(patient_details.verification_no_votes).ok_or(MedifundError::OverflowError)?;
-    //let total_votes = ctx.accounts.patient_case.verification_yes_votes + ctx.accounts.patient_case.verification_no_votes;
 
-    // Let's type cast both total_votes and total_verifiers to u32 to avoid overflow and precision loss
+    // Let's type cast both total_votes and total_verifiers to u32 and SCALE to avoid overflow and precision loss
     let total_votes_u32_scaled = (total_votes as u32).checked_mul(SCALE).ok_or(MedifundError::OverflowError)?;
     let total_verifiers_u32_scaled = (total_verifiers as u32).checked_mul(SCALE).ok_or(MedifundError::OverflowError)?;
 
@@ -61,10 +59,21 @@ pub fn approve_patient_case(ctx: Context<VerifyPatientCase>, _case_id: String, i
 
             // Go Ahead and create the Patient Escrow PDA Account
             create_escrow_pda(ctx)?;
+
+            // CATCHING THIS EVENT ON-CHAIN ANYTIME THIS INSTRUCTION OCCURS
+            let message = format!("Patient Case With ID, {} has successfully been verified!!!", case_id);
+            let current_time = Clock::get()?.unix_timestamp;
+            emit!(
+                PatientCaseVerificationStatus{
+                    message,
+                    case_id,
+                    is_verified: true,
+                    timestamp: current_time,
+                }
+            );
         } else {
             // If not, we keep the patient case as unverified. 
             patient_details.is_verified = false;
-            //close_patient_case(ctx)?;
 
         }
     } 
@@ -74,10 +83,11 @@ pub fn approve_patient_case(ctx: Context<VerifyPatientCase>, _case_id: String, i
 
 fn create_escrow_pda(ctx: Context<VerifyPatientCase>) -> Result<()> {
 
-    //let case_of_patient = &ctx.accounts.patient_case;
+    
     let patient_case_key = ctx.accounts.patient_case.key();
 
     let case_id_lookup = &mut ctx.accounts.case_lookup;
+
     // Get Escrow PDA address using find_program_address
     let (patient_escrow_pda, _patient_escrow_bump) = Pubkey::find_program_address(
         &[b"patient_escrow", ctx.accounts.patient_case.case_id.as_bytes(), patient_case_key.as_ref()],
@@ -96,13 +106,13 @@ fn create_escrow_pda(ctx: Context<VerifyPatientCase>) -> Result<()> {
     let space = 0;
     let lamports = rent.minimum_balance(space);
 
-    // Create the Escrow PDA Account, setting program_id as owner
+      //Create the Escrow PDA Account, setting program_id as owner
     let create_escrow_ix = solana_program::system_instruction::create_account(
         &ctx.accounts.verifier.key(),
         &patient_escrow_pda,
         lamports,
-        space as u64,
-        &solana_program::system_program::ID
+        0,
+        &solana_program::system_program::ID,
     );
 
     let accounts_needed = &[

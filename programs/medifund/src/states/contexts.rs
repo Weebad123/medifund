@@ -1,8 +1,11 @@
+//use std::alloc::System;
+
 use anchor_lang::prelude::*;
 //use anchor_lang::solana_program::account_info::Account;
 
 use crate::states::accounts::*;
 use crate::states::errors::*;
+//use crate::ID;
 
 
 
@@ -191,8 +194,52 @@ pub struct VerifyPatientCase<'info> {
     pub patient_case: Account<'info, PatientCase>,
 
     /// CHECKED: This account does not exist yet, and may be created upon successful verification
+    #[account(
+        mut,
+        //owner = ID,
+    )]
+    pub patient_escrow: AccountInfo<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+
+// IF CASE FAILS VERIFICATION, WE CALL THIS INSTRUCTION TO CLOSE THE PATIENT CASE PDA
+#[derive(Accounts)]
+#[instruction(case_id: String)]
+
+pub struct ClosePatientCase<'info> {
+
+    // Anybody can call this instruction to close the patient case
     #[account(mut)]
-    pub patient_escrow: UncheckedAccount<'info>,
+    pub user: Signer<'info>,
+
+    // Let's get the Case Lookup PDA using the specified case ID of the original format, CASE####
+    #[account(
+        mut,
+        seeds = [b"case_lookup", case_id.as_bytes()],
+        bump = case_lookup.case_lookup_bump,
+        constraint = case_lookup.case_id_in_lookup == case_id @MedifundError::InvalidCaseID,
+    )]
+    pub case_lookup: Account<'info, CaseIDLookup>,
+
+    #[account(
+        mut,
+        close = user,// I would like the lamports to return to the person closing this account.
+        seeds = [b"patient", case_lookup.patient_address.as_ref()],
+        bump = patient_case.patient_case_bump,
+        constraint = patient_case.key() == case_lookup.patient_pda.key() @ MedifundError::InvalidCaseID,
+        constraint = patient_case.case_id == case_id @ MedifundError::InvalidCaseID,
+    )]
+    pub patient_case: Account<'info, PatientCase>,
+
+    // Have The Verifier Registry So I Can Query The Expected Number Of Verifiers To Have Voted
+    #[account(
+        mut,
+        seeds = [b"verifiers_list"],
+        bump = verifiers_list.verifier_registry_bump,
+    )]
+    pub verifiers_list: Account<'info, VerifiersList>,
 
     pub system_program: Program<'info, System>,
 }
@@ -230,7 +277,7 @@ pub struct Donation<'info> {
         //seeds = [b"patient_escrow", patient_case.case_id.as_bytes() ,patient_case.key().as_ref(),],
         //bump = case_lookup.patient_escrow_bump,
     )]
-    pub patient_escrow: UncheckedAccount<'info>,
+    pub patient_escrow: AccountInfo<'info>,
 
     // Donor Info PDA here
     #[account(
@@ -247,7 +294,7 @@ pub struct Donation<'info> {
 
 
 
-// FUND RELEASAL TO TREATMENT FACILITY
+// FUND RELEASE TO TREATMENT FACILITY
 #[derive(Accounts)]
 #[instruction(case_id: String)]
 pub struct ReleaseFunds<'info> {
@@ -273,13 +320,15 @@ pub struct ReleaseFunds<'info> {
     /// CHECKED: This account has already been created and it's safe now. 
     #[account(
         mut,
-        seeds = [b"patient_escrow", case_id.as_bytes() ,patient_case.key().as_ref(),],
-        bump = case_lookup.patient_escrow_bump,
+        //seeds = [b"patient_escrow", case_id.as_bytes().as_ref() ,patient_case.key().as_ref(),],
+        //bump = case_lookup.patient_escrow_bump,
+        owner = system_program.key(),
     )]
-    pub patient_escrow: UncheckedAccount<'info>,
+    pub patient_escrow: AccountInfo<'info>,
 
     ///CHECKED: The Facility Address To Receive Funds For Patient Treatment
-    pub facility_address: UncheckedAccount<'info>,
+    #[account(mut)]
+    pub facility_address: AccountInfo<'info>,
 
     // The Multisig To Sign The Transactions, 1 Admins, plus 3 Verifiers
     #[account(
@@ -297,6 +346,7 @@ pub struct ReleaseFunds<'info> {
 
 
     // The Verifiers For The Mutlisig
+    
     #[account(mut)]
     pub verifier1: Signer<'info>,
 
@@ -306,6 +356,7 @@ pub struct ReleaseFunds<'info> {
     #[account(mut)]
     pub verifier3: Signer<'info>,
 
+    
     // Get Verifiers PDAs
     #[account(
         mut,

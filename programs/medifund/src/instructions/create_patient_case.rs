@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::states::{contexts::*, MedifundError, PatientCase};
+use crate::states::{contexts::*, MedifundError, PatientCase, PatientCaseSubmission};
 
 use aes_gcm::{aead::{Aead, KeyInit}, Aes256Gcm, Nonce};
 
@@ -39,6 +39,11 @@ pub fn initialize_patient(
         let encrypted_medical_link = encrypt_link(&link_to_records)
         .map_err(|_| error!(MedifundError::EncryptionError))?;
 
+    // Clone values to avoid rust ownership errors
+    let case_description_clone = case_description.clone();
+    let patient_case_id_clone = patient_case_id.clone();
+    let encrypted_records_link_clone = encrypted_medical_link.clone();
+
         patient_details.set_inner(
             PatientCase {
                 case_description,
@@ -55,6 +60,19 @@ pub fn initialize_patient(
                 case_funded: false,
             }
         );
+
+        // CATCHING THIS EVENT ON-CHAIN ANYTIME THERE IS A SUBMISSION OF CASE
+
+        let message = format!("A patient case with ID, {} and description, {} has been successfully submitted", patient_case_id_clone, case_description_clone);
+        emit!(PatientCaseSubmission {
+            message,
+            description: case_description_clone,
+            case_id: patient_case_id_clone,
+            total_needed_amount: total_amount_needed,
+            link_to_records: encrypted_records_link_clone,
+            is_verified: false,
+            total_raised: 0
+        });
 
         Ok(())
     }

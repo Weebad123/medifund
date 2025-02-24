@@ -63,8 +63,20 @@ pub enum MedifundError{
     #[msg("Balance In Lamports Is Not Enough: Specify Lesser Amount")]
     InsufficientBalance,
 
+    #[msg("Balance In Lamports To Rent Account Is Not Sufficient")]
+    InsufficientRentBalance,
+
     #[msg("Donations Cannot Be Made To Unverified Cases")]
     UnverifiedCase,
+
+    #[msg("Patient Case Has Not Yet Been Verified")]
+    CaseNotYetVerified,
+
+    #[msg("Not Enough Verifiers Have Voted On The Case")]
+    NotEnoughVerifiers,
+
+    #[msg("The 70% Approval Threshold Was Passed")]
+    CasePassedApproval,
 
     #[msg("Case Has Been Fully Funded: No Need For Further Donations")]
     CaseFullyFunded,

@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::states::{contexts::*, errors::*};
+use crate::states::{contexts::*, errors::*, events::*};
 
 
 /* There Is Gonna Be A Verifier Registry List
@@ -18,6 +18,12 @@ pub fn initialize_verifiers_list(ctx: Context<InitializeVerifiersRegistryAndCase
 
     verifiers_registry.all_verifiers = Vec::new();
     verifiers_registry.verifier_registry_bump = ctx.bumps.verifiers_registry_list;
+
+    let message = format!("The Global Registry Of Verifiers Has Been Initialized");
+    emit!(GlobalRegistryInitialize {
+        message
+    });
+
     Ok(())
 }
 
@@ -36,6 +42,15 @@ pub fn add_verifier(ctx: Context<VerifierInfo>, verifier_address: Pubkey) -> Res
 
     // Add the verifier PDA account, and not just the address
     verifiers_registry.add_verifier_pda_to_list(verifier_info.key())?;
+    let current_time = Clock::get()?.unix_timestamp;
+
+    let message = format!("A Verifier With address, {} has been initialized to Global Registry of Verifiers At Time, {}", verifier_address, current_time);
+
+    emit!(AddingNewVerifier {
+        address: verifier_address,
+        timestamp: current_time,
+        message
+    });
 
     Ok(())
 }
@@ -54,6 +69,14 @@ pub fn remove_verifier(ctx: Context<VerifierInfo>, verifier_address: Pubkey) -> 
 
     // Let's set verifier status to false
     verifier_info.is_verifier = false;
+
+    let current_time = Clock::get()?.unix_timestamp;
+    let message = format!("The Verifier with address, {} has been disabled and no longer a verifier at Time, {}", verifier_address, current_time);
+    emit!(RemovingExistingVerifier {
+        address: verifier_address,
+        timestamp: current_time,
+        message
+    });
 
     Ok(())
 }
